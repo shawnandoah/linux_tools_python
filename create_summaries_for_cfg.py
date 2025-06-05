@@ -56,12 +56,32 @@ def parse_register_cpp(register_path):
 
     return registrations
 
+
+def extract_function_block(content, func_pattern):
+    match = re.search(func_pattern, content)
+    if not match:
+        return None
+    start_idx = match.end()
+    brace_count = 1
+    i = start_idx
+    while i < len(content):
+        if content[i] == '{':
+            brace_count += 1
+        elif content[i] == '}':
+            brace_count -= 1
+            if brace_count == 0:
+                return content[match.start():i+1]
+        i += 1
+    return None
+
+
 # Parse calculator implementation files for default property values
 def parse_cpp_properties(cpp_path):
     with open(cpp_path, 'r') as f:
         content = f.read()
     props = []
-    init_block = re.search(r'init\s*\(\)\s*\{(.*?)\}', content, re.DOTALL)
+    #init_block = re.search(r'init\s*\(\)\s*\{(.*?)\}', content, re.DOTALL)
+    init_block = extract_function_block(content, r'\w+::init\s*\([^)]*\)\s*{')
     if not init_block:
         return props
     lines = init_block.group(1).splitlines()
