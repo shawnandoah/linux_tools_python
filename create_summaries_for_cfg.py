@@ -48,7 +48,12 @@ def parse_register_cpp(register_path):
     reg_block = re.search(r'Register\(\)\s*\{(.*?)\}', content, re.DOTALL)
     if not reg_block:
         return []
-    registrations = re.findall(r'Registrator<.*?>\s+\w+\("(.*?)",\s*ObjectFactory<.*?>::DFactoryMethod<(.*?)>', reg_block.group(1))
+    registrations = re.findall(
+    r'Registrator<\s*Calculator\s*>.*?"([^"]+)"\s*,\s*ObjectFactory<\s*Calculator\s*>::DFactoryMethod<\s*([^>\s]+)\s*>',
+    reg_block,
+    re.DOTALL
+)
+
     return registrations
 
 # Parse calculator implementation files for default property values
