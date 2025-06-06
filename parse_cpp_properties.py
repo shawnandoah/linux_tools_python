@@ -9,8 +9,10 @@ def parse_cpp_properties(cpp_path):
         return []
 
     # Use re.findall() for consistent pattern like we did for registrations
+   # setting_pattern = re.findall(
+        # r'vm->get\w+Setting\s*\(\s*m_cfgTag\s*\+\s*"\.([^"\']+)"\s*(?:,\s*([\w\.\-]+|\"[^\"]*\"|\'[^\']*\'))?\)',
     setting_pattern = re.findall(
-        r'vm->get\w+Setting\s*\(\s*m_cfgTag\s*\+\s*"\.([^"\']+)"\s*(?:,\s*([\w\.\-]+|\"[^\"]*\"|\'[^\']*\'))?\)',
+    r'Registrator<\s*Calculator\s*>.*?"([^"]+)"\s*,\s*ObjectFactory<\s*Calculator\s*>::DFactoryMethod<\s*([^>\s]+)\s*>',
         init_block,
         re.DOTALL
     )
@@ -20,3 +22,5 @@ def parse_cpp_properties(cpp_path):
         properties.append((prop_name, default_value.strip() if default_value else ''))
 
     return properties
+
+
