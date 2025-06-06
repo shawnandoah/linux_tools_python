@@ -8,6 +8,23 @@ def parse_cpp_properties(cpp_path):
     if not init_block:
         return []
 
+
+
+    #option 1
+    line = 'M_model = vm->getStringSetting(m_cfgTag + ".propertyName2", "defaultstr");'
+    
+    match = re.search(
+        r'vm->get\w+Setting\(\s*m_cfgTag\s*\+\s*"\.([^"]+)"\s*(?:,\s*([^)]+))?\)',
+        line
+    )
+    
+    if match:
+        print("Property Name:", match.group(1))  # propertyName2
+        print("Default Value:", match.group(2))  # "defaultstr"
+    else:
+        print("No match found.")
+
+    #option 2
     # Use re.findall() for consistent pattern like we did for registrations
    # setting_pattern = re.findall(
         # r'vm->get\w+Setting\s*\(\s*m_cfgTag\s*\+\s*"\.([^"\']+)"\s*(?:,\s*([\w\.\-]+|\"[^\"]*\"|\'[^\']*\'))?\)',
