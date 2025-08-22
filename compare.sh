@@ -81,12 +81,15 @@ num_cols=${#columns[@]}
 awk -F',' -v OFS=',' -v num_cols="$num_cols" -v has_header="$header" '
   NR==FNR {
     a[$1] = $0
+    seen1[$1]++
     total1++
     next
   }
   {
     key = $1
+    seen2[key]++
     total2++
+
     if (key in a) {
       matched++
       split(a[key], f1, ",")
@@ -109,21 +112,39 @@ awk -F',' -v OFS=',' -v num_cols="$num_cols" -v has_header="$header" '
         }
       }
     } else {
-      missing2++
+      missing2[key] = 1
     }
   }
   END {
-    for (k in a) seen1[k]++
     for (k in seen1)
-      if (!(k in a)) missing1++
+      if (!(k in seen2)) missing1[k] = 1
 
     print "File 1 row count:", total1 > "compare_result.txt"
     print "File 2 row count:", total2 >> "compare_result.txt"
     print "" >> "compare_result.txt"
     print "Matched keys:", matched >> "compare_result.txt"
-    print "Unmatched keys in File1:", total1 - matched >> "compare_result.txt"
-    print "Unmatched keys in File2:", total2 - matched >> "compare_result.txt"
-    print "" >> "compare_result.txt"
+    print "Unmatched keys in File1:", length(missing1) >> "compare_result.txt"
+    if (length(missing1) > 0) {
+      print "First 10 unmatched keys from File1:" >> "compare_result.txt"
+      c = 0
+      for (k in missing1) {
+        print " - " k >> "compare_result.txt"
+        if (++c == 10) break
+      }
+      print "" >> "compare_result.txt"
+    }
+
+    print "Unmatched keys in File2:", length(missing2) >> "compare_result.txt"
+    if (length(missing2) > 0) {
+      print "First 10 unmatched keys from File2:" >> "compare_result.txt"
+      c = 0
+      for (k in missing2) {
+        print " - " k >> "compare_result.txt"
+        if (++c == 10) break
+      }
+      print "" >> "compare_result.txt"
+    }
+
     print "Column Comparison Summary:" >> "compare_result.txt"
     print "----------------------------------------------------------" >> "compare_result.txt"
     printf "%-14s | %-9s | %-9s | %-10s | %-10s | %-10s\n", "Column Name", "Same Rows", "Diff Rows", "%Diff Min", "%Diff Max", "%Diff Mean" >> "compare_result.txt"
@@ -133,7 +154,7 @@ awk -F',' -v OFS=',' -v num_cols="$num_cols" -v has_header="$header" '
       minval = (min[cname] == "") ? "-" : sprintf("%.2f%%", min[cname])
       maxval = (max[cname] == "") ? "-" : sprintf("%.2f%%", max[cname])
       meanval = (count[cname] == 0) ? "-" : sprintf("%.2f%%", sum[cname] / count[cname])
-      colname = (has_header != "") ? "'\''" columns[i-1] "'\''" : cname
+      colname = (has_header != "") ? columns[i-1] : cname
       printf "%-14s | %-9d | %-9d | %-10s | %-10s | %-10s\n", colname, same[cname]+0, diff[cname]+0, minval, maxval, meanval >> "compare_result.txt"
     }
   }
