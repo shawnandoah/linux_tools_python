@@ -8,26 +8,22 @@ if [[ -z "$file1" || -z "$file2" ]]; then
   exit 1
 fi
 
-# Full paths and output file
+# Full paths and base names
 file1_path=$(realpath "$file1")
 file2_path=$(realpath "$file2")
 base1=$(basename "$file1" .csv)
 base2=$(basename "$file2" .csv)
 outfile="compare_result_${base1}_f${base2}.txt"
 
-# Sort both files by first column (key)
-sort -t, -k1,1 "$file1" > f1_sorted.csv
-sort -t, -k1,1 "$file2" > f2_sorted.csv
+# Sort both files by first and second column
+sort -t, -k1,1 -k2,2 "$file1" > f1_sorted.csv
+sort -t, -k1,1 -k2,2 "$file2" > f2_sorted.csv
 
-# Get header and number of columns
+# Extract header from the first file
 header=$(head -n1 f1_sorted.csv)
 num_cols=$(awk -F, 'NR==1 {print NF}' f1_sorted.csv)
 
-# Strip headers from sorted files
-tail -n +2 f1_sorted.csv > f1_data.csv
-tail -n +2 f2_sorted.csv > f2_data.csv
-
-# Begin AWK compare
+# Run comparison
 awk -F, -v OFS="," -v num_cols="$num_cols" \
     -v out="$outfile" -v header="$header" \
     -v file1_path="$file1_path" -v file2_path="$file2_path" '
@@ -40,10 +36,12 @@ BEGIN {
   print "" >> out
 }
 NR==FNR {
+  if (FNR == 1) next  # skip header
   a[$1] = $0
   next
 }
 {
+  if (FNR == 1) next  # skip header
   key = $1
   seen2[key] = $0
   if (key in a) {
@@ -51,7 +49,7 @@ NR==FNR {
     split($0, f2, ",")
     row_diff = 0
     for (i = 2; i <= num_cols; i++) {
-      cname = columns[i - 1]  # Corrected alignment
+      cname = columns[i - 1]
       if (f1[i] == f2[i]) {
         same[cname]++
       } else {
@@ -89,7 +87,7 @@ END {
   }
 
   print "File 1 row count: " total1 >> out
-  print "File 2 row count: " FNR >> out
+  print "File 2 row count: " FNR - 1 >> out
   print "" >> out
   print "Matched keys: " matched >> out
   print "Unmatched keys in File1: " missing1 >> out
@@ -131,6 +129,6 @@ END {
     }
   }
 }
-' f1_data.csv f2_data.csv
+' f1_sorted.csv f2_sorted.csv
 
 echo "✅ Done. Output written to $outfile"
