@@ -8,18 +8,18 @@ if [[ -z "$file1" || -z "$file2" ]]; then
   exit 1
 fi
 
-# Full paths and base names
+# Get full paths and base names
 file1_path=$(realpath "$file1")
 file2_path=$(realpath "$file2")
 base1=$(basename "$file1" .csv)
 base2=$(basename "$file2" .csv)
 outfile="compare_result_${base1}_f${base2}.txt"
 
-# Sort both files by first and second column
+# Sort by first and second columns (assumed key + subkey)
 sort -t, -k1,1 -k2,2 "$file1" > f1_sorted.csv
 sort -t, -k1,1 -k2,2 "$file2" > f2_sorted.csv
 
-# Extract header from the first file
+# Extract header and number of columns
 header=$(head -n1 f1_sorted.csv)
 num_cols=$(awk -F, 'NR==1 {print NF}' f1_sorted.csv)
 
@@ -37,18 +37,19 @@ BEGIN {
 }
 NR==FNR {
   if (FNR == 1) next  # skip header
-  a[$1] = $0
+  key = $1 FS $2
+  a[key] = $0
   next
 }
 {
   if (FNR == 1) next  # skip header
-  key = $1
+  key = $1 FS $2
   seen2[key] = $0
   if (key in a) {
     split(a[key], f1, ",")
     split($0, f2, ",")
     row_diff = 0
-    for (i = 2; i <= num_cols; i++) {
+    for (i = 3; i <= num_cols; i++) {
       cname = columns[i - 1]
       if (f1[i] == f2[i]) {
         same[cname]++
@@ -89,7 +90,7 @@ END {
   print "File 1 row count: " total1 >> out
   print "File 2 row count: " FNR - 1 >> out
   print "" >> out
-  print "Matched keys: " matched >> out
+  print "Matched composite keys: " matched >> out
   print "Unmatched keys in File1: " missing1 >> out
   if (missing1 > 0) {
     print "First 10 unmatched keys in File1:" >> out
@@ -108,7 +109,7 @@ END {
   printf "%-20s | %-9s | %-9s | %-10s | %-10s | %-10s\n", "Column Name", "Same Rows", "Diff Rows", "%Diff Min", "%Diff Max", "%Diff Mean" >> out
   print "----------------------------------------------------------" >> out
 
-  for (i = 2; i <= num_cols; i++) {
+  for (i = 3; i <= num_cols; i++) {
     cname = columns[i - 1]
     minval = (min[cname] == "") ? "-" : sprintf("%.2f%%", min[cname])
     maxval = (max[cname] == "") ? "-" : sprintf("%.2f%%", max[cname])
