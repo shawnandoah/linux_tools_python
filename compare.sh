@@ -8,16 +8,14 @@ if [[ -z "$file1" || -z "$file2" ]]; then
   exit 1
 fi
 
-# Convert to full paths and base names
+# Full paths and output file
 file1_path=$(realpath "$file1")
 file2_path=$(realpath "$file2")
 base1=$(basename "$file1" .csv)
 base2=$(basename "$file2" .csv)
-
-# Set output filename
 outfile="compare_result_${base1}_f${base2}.txt"
 
-# Sort both by first column
+# Sort both files by first column (key)
 sort -t, -k1,1 "$file1" > f1_sorted.csv
 sort -t, -k1,1 "$file2" > f2_sorted.csv
 
@@ -25,12 +23,14 @@ sort -t, -k1,1 "$file2" > f2_sorted.csv
 header=$(head -n1 f1_sorted.csv)
 num_cols=$(awk -F, 'NR==1 {print NF}' f1_sorted.csv)
 
-# Strip headers
+# Strip headers from sorted files
 tail -n +2 f1_sorted.csv > f1_data.csv
 tail -n +2 f2_sorted.csv > f2_data.csv
 
+# Begin AWK compare
 awk -F, -v OFS="," -v num_cols="$num_cols" \
-    -v out="$outfile" -v header="$header" -v file1_path="$file1_path" -v file2_path="$file2_path" '
+    -v out="$outfile" -v header="$header" \
+    -v file1_path="$file1_path" -v file2_path="$file2_path" '
 BEGIN {
   split(header, columns, ",")
   print "Compare Report" > out
@@ -51,7 +51,7 @@ NR==FNR {
     split($0, f2, ",")
     row_diff = 0
     for (i = 2; i <= num_cols; i++) {
-      cname = columns[i]
+      cname = columns[i - 1]  # Corrected alignment
       if (f1[i] == f2[i]) {
         same[cname]++
       } else {
@@ -111,7 +111,7 @@ END {
   print "----------------------------------------------------------" >> out
 
   for (i = 2; i <= num_cols; i++) {
-    cname = columns[i]
+    cname = columns[i - 1]
     minval = (min[cname] == "") ? "-" : sprintf("%.2f%%", min[cname])
     maxval = (max[cname] == "") ? "-" : sprintf("%.2f%%", max[cname])
     meanval = (count[cname] == 0) ? "-" : sprintf("%.2f%%", sum[cname] / count[cname])
